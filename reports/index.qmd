@@ -1,0 +1,35 @@
+---
+title: "index"
+format: html
+editor: visual
+---
+
+## Team Porifera
+
+### Q1
+
+Real-world Data Types
+
+-   Scientific Names - Character
+
+-   Count of plants in a quadrat - Integer
+
+-   Whether or not it rained on a sequence of days - Logical
+
+-   Reaction times of birds to disturbances in seconds - Numeric
+
+### Q2
+
+``` r
+bird_mass_g <- c(100.1, 99.2, 99.3, NA, 100.0, 101.5, 94.7, 99.2, 108.2)
+bird_mass_narm <- na.omit(bird_mass_g)
+mean_mass <- mean(bird_mass_g)
+sd_mass <- sd(bird_mass_g)
+is_outlier <- bird_mass_g > mean_mass + 3 * sd_mass
+num_outliers <- sum(is_outlier)
+```
+
+``` r
+bird_mass_g <- c(100.1, 99.2, 99.3, NA, 100.0, 101.5, 94.7, 99.2, 108.2)
+bird_mass_g
+```
