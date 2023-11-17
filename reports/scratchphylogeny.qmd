@@ -1,0 +1,92 @@
+---
+title: "Scratch Phylogeny"
+format: html
+editor: visual
+---
+
+## Scratch Phylogeny
+
+Figuring out how to create a parsimonious phylogeny with [BirdTree](https://birdtree.org/) (Jetz et al., 2021)
+
+```{r}
+library(ape)
+library(here)
+library(phytools)
+library(tidyverse)
+
+# data sets
+# nex_data is 100 trees
+nex_data <- read.nexus(here("data/tree-pruner-7e6e42e2-9bfb-413b-b7fa-ec6403d781a6/output.nex"))
+
+# Elton Traits
+elton <- read_csv(here("data/EltonTraits.csv"))
+view(elton)
+
+# Peru Hawk Experiment Data
+hwk <- read_csv(here("data/2023_MadreDeDios_hwk.csv"))
+view(hwk)
+```
+
+## Creating a consensus tree
+
+```{r}
+consensus_tree <- consensus(nex_data, p = 0.5)
+plot(consensus_tree, cex = 0.8)
+```
+
+## Ordering the tree
+
+```{r}
+tip_labels <- consensus_tree$tip.label
+tip_labels
+
+# Getting rid of duplicate Scientific Names in the Elton Traits
+elton_unique <- unique(elton[, "Scientific", drop = FALSE])
+
+merged_data <- merge(data.frame(species = tip_labels), elton_unique, by.x = "species", by.y = "Scientific", all.x = TRUE)
+
+merged_data
+
+ordered_vector <- order(as.vector(merged_data$SpecID))
+ordered_tips <- merged_data[order(merged_data$SpecID), "species"]
+
+ordered_tree <- consensus_tree[ordered_tips]
+
+plot(ordered_tree, cex = 0.8)
+```
+
+```{r}
+# Example data frames
+tip_labels <- data.frame(species = c("SpeciesA", "SpeciesB", "SpeciesC"),
+                         value1 = c(10, 20, 30))
+
+elton_unique <- data.frame(Scientific = c("SpeciesA", "SpeciesB", "SpeciesC"),
+                            value2 = c(100, 200, 300))
+
+# Merge based on the "species" and "Scientific" columns
+merged_data <- merge(tip_labels, elton_unique, by.x = "species", by.y = "Scientific", all.x = TRUE)
+
+# Print the merged data frame
+print(merged_data)
+
+```
+
+```{r}
+# Extracting tip labels from the consensus tree
+tip_labels <- consensus_tree$tip.label
+
+# Creating a data frame with the tip labels
+tip_labels_df <- data.frame(Scientific = tip_labels)
+
+# Getting rid of duplicate Scientific Names in the Elton Traits
+elton_unique <- unique(elton[, c("Scientific", "SpecID")])
+elton_unique_underscore <- elton_unique %>% 
+  mutate_all(~gsub(" ", "_", .))
+
+# Merging all columns based on the "Scientific" column
+merged_data <- merge(tip_labels_df, elton_unique_underscore, by = "Scientific", all.x = TRUE)
+
+# Print the merged data frame
+print(merged_data)
+
+```
