@@ -10,6 +10,7 @@ Figuring out how to create a parsimonious phylogeny with [BirdTree](https://bird
 
 ```{r}
 library(ape)
+library(castor)
 library(here)
 library(phytools)
 library(tidyverse)
@@ -25,6 +26,9 @@ view(elton)
 # Peru Hawk Experiment Data
 hwk <- read_csv(here("data/2023_MadreDeDios_hwk.csv"))
 view(hwk)
+
+spp_alarm <- read.csv(here("data/Spp_Alarm.csv"))
+view(spp_alarm)
 ```
 
 ## Creating a consensus tree
@@ -56,22 +60,6 @@ plot(ordered_tree, cex = 0.8)
 ```
 
 ```{r}
-# Example data frames
-tip_labels <- data.frame(species = c("SpeciesA", "SpeciesB", "SpeciesC"),
-                         value1 = c(10, 20, 30))
-
-elton_unique <- data.frame(Scientific = c("SpeciesA", "SpeciesB", "SpeciesC"),
-                            value2 = c(100, 200, 300))
-
-# Merge based on the "species" and "Scientific" columns
-merged_data <- merge(tip_labels, elton_unique, by.x = "species", by.y = "Scientific", all.x = TRUE)
-
-# Print the merged data frame
-print(merged_data)
-
-```
-
-```{r}
 # Extracting tip labels from the consensus tree
 tip_labels <- consensus_tree$tip.label
 
@@ -89,4 +77,46 @@ merged_data <- merge(tip_labels_df, elton_unique_underscore, by = "Scientific", 
 # Print the merged data frame
 print(merged_data)
 
+```
+
+## Alarm Call Phylogeny
+
+```{r}
+# add underscores
+spp_alarm$BirdTree <- gsub(" ", "_", spp_alarm$BirdTree)
+
+# simplifying the object name
+tip <- spp_alarm$BirdTree
+
+# Check unmatched tip labels
+unmatched_tips <- setdiff(consensus_tree$tip.label, tip)
+
+# Print unmatched tip labels
+print(unmatched_tips)
+
+pruned_tree <- keep.tip(consensus_tree, tip)
+t2<-consensus.edges(pruned_tree)
+
+# data that will appear on tree
+alarm <- spp_alarm$Alarm
+names(alarm) <- spp_alarm$BirdTree
+
+#debugging
+print(length(alarm))
+print(head(alarm))
+str(pruned_tree)
+plot(pruned_tree)
+branch_lengths <- pruned_tree$edge
+edge <- pruned_tree$edge
+pruned_tree <- compute.brlen(pruned_tree, method = "uniform")
+node_depths <- node.depth(pruned_tree, method = 1)
+pruned_tree$node.label <- node_depths
+obj<-contMap(pruned_tree, alarm, plot=FALSE, res=200)
+
+plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", lwd = 3)
+```
+
+```{r}
+get_all_node_depths(pruned_tree, as_edge_count=FALSE)
+str(pruned_tree)
 ```
