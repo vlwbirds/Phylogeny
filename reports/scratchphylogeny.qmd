@@ -111,6 +111,8 @@ edge <- pruned_tree$edge
 pruned_tree <- compute.brlen(pruned_tree, method = "uniform")
 node_depths <- node.depth(pruned_tree, method = 1)
 pruned_tree$node.label <- node_depths
+
+# plot tree
 obj<-contMap(pruned_tree, alarm, plot=FALSE, res=200)
 
 plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", lwd = 3)
@@ -119,4 +121,43 @@ plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", l
 ```{r}
 get_all_node_depths(pruned_tree, as_edge_count=FALSE)
 str(pruned_tree)
+```
+
+## Fan Tree
+
+```{r}
+plotTree(pruned_tree, type = "fan", ftype = "i")
+```
+
+## Tree Matrix
+
+```{r}
+nex <- as.matrix(alarm)[,1]
+nex
+```
+
+## Estimate Ancestral State
+
+```{r}
+
+fit <- fastAnc(pruned_tree, alarm, vars = TRUE, CI = TRUE)
+fit
+```
+
+```{r}
+fit$CI[1,]
+```
+
+```{r}
+range(alarm)
+```
+
+## Projection of the Reconstruction onto the Edges of the Tree
+
+This is identical to the first one
+
+```{r}
+obj2 <- contMap(pruned_tree, alarm, plot = FALSE)
+plot( setMap(obj, invert = TRUE), legend = 0.7*max(nodeHeights()),
+     fsize = c(0.7, 0.9))
 ```
