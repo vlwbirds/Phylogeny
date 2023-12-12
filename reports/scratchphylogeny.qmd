@@ -111,9 +111,9 @@ edge <- pruned_tree$edge
 pruned_tree <- compute.brlen(pruned_tree, method = "uniform")
 node_depths <- node.depth(pruned_tree, method = 1)
 pruned_tree$node.label <- node_depths
-
+tree <- pruned_tree
 # plot tree
-obj<-contMap(pruned_tree, alarm, plot=FALSE, res=200)
+obj<-contMap(tree, alarm, plot=FALSE, res=200)
 
 plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", lwd = 3)
 ```
@@ -126,7 +126,7 @@ str(pruned_tree)
 ## Fan Tree
 
 ```{r}
-plotTree(pruned_tree, type = "fan", ftype = "i")
+plotTree(tree, type = "fan", ftype = "i")
 ```
 
 ## Tree Matrix
@@ -140,8 +140,14 @@ nex
 
 ```{r}
 
-fit <- fastAnc(pruned_tree, alarm, vars = TRUE, CI = TRUE)
+fit <- fastAnc(tree, alarm, vars = TRUE, CI = TRUE)
 fit
+```
+
+```{r}
+str(fit)
+class(fit)
+ans_df <- as_data_frame(fit)
 ```
 
 ```{r}
@@ -154,10 +160,29 @@ range(alarm)
 
 ## Projection of the Reconstruction onto the Edges of the Tree
 
-This is identical to the first one
+This is identical to the first one. Probably need to join character estimates
 
 ```{r}
-obj2 <- contMap(pruned_tree, alarm, plot = FALSE)
-plot( setMap(obj, invert = TRUE), legend = 0.7*max(nodeHeights()),
+obj2 <- contMap(tree, alarm, plot = FALSE)
+plot( setMap(obj, invert = TRUE), legend = 0.7*max(nodeHeights(pruned_tree)),
      fsize = c(0.7, 0.9))
+```
+
+## Discrete Characters
+
+```{r}
+data(nex_data)
+
+x <- getStates(pruned_tree, "tips")
+tree <- pruned_tree
+rm(pruned_tree)
+
+```
+
+```{r}
+phenogram(pruned_tree, alarm, ftype = "off", spread.labels = FALSE)
+```
+
+```{r}
+phylomorphospace3d(tree, alarm, method = "static")
 ```
