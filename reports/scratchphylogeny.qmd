@@ -207,7 +207,11 @@ unmatched_tips <- setdiff(consensus_tree$tip.label, tip)
 # Print unmatched tip labels
 print(unmatched_tips)
 
-pruned_tree <- keep.tip(consensus_tree, tip)
+matching_tips <- tip %in% consensus_tree$tip.label
+
+consensus_tree_matched <- keep.tip.phylo(consensus_tree, tip[matching_tips])
+
+pruned_tree <- keep.tip(consensus_tree_matched, tip)
 t2<-consensus.edges(pruned_tree)
 
 # data that will appear on tree
