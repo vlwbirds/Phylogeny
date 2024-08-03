@@ -98,7 +98,7 @@ print(unmatched_tips)
 
 # dropping unmatched species
 pruned_tree <- keep.tip(consensus_tree, tip)
-t2<-consensus.edges(pruned_tree)
+t2 <- consensus.edges(pruned_tree)
 
 # data that will appear on tree
 alarm <- spp_alarm$Alarm
@@ -109,6 +109,8 @@ print(length(alarm))
 print(head(alarm))
 str(pruned_tree)
 plot(pruned_tree)
+
+# adding edge length ???
 branch_lengths <- pruned_tree$edge
 edge <- pruned_tree$edge
 pruned_tree <- compute.brlen(pruned_tree, method = "uniform")
@@ -116,7 +118,7 @@ node_depths <- node.depth(pruned_tree, method = 1)
 pruned_tree$node.label <- node_depths
 
 # plotting the tree
-obj<-contMap(pruned_tree, alarm, plot=FALSE, res=200)
+obj <- contMap(pruned_tree, alarm, plot=FALSE, res=200)
 plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", lwd = 3)
 
 ```
