@@ -16,19 +16,16 @@ library(phytools)
 library(tidyverse)
 
 # data sets
-# nex_data is 100 trees
-nex_data <- read.nexus(here("data/tree-pruner-7e6e42e2-9bfb-413b-b7fa-ec6403d781a6/output.nex"))
+# nex_data is 500 trees
+nex_data <- read.nexus(here("data/240803-tree-pruner-0958de02-389f-4ddd-b30c-98a4ce5cb196/output.nex"))
 
 # Elton Traits
 elton <- read_csv(here("data/EltonTraits.csv"))
 view(elton)
 
 # Peru Hawk Experiment Data
-hwk <- read_csv(here("data/2023_MadreDeDios_hwk.csv"))
+hwk <- read_csv(here("data/2024_MadreDeDios_hwk.csv"))
 view(hwk)
-
-spp_alarm <- read.csv(here("data/Spp_Alarm.csv"))
-view(spp_alarm)
 ```
 
 ## Creating a consensus tree
