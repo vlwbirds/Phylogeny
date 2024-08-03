@@ -1,0 +1,271 @@
+---
+title: "HwkPhylo24"
+format: html
+editor: visual
+---
+
+## Scratch Phylogeny
+
+Figuring out how to create a parsimonious phylogeny with [BirdTree](https://birdtree.org/) (Jetz et al., 2021)
+
+```{r}
+library(ape)
+library(castor)
+library(here)
+library(phytools)
+library(tidyverse)
+
+# data sets
+# nex_data is 100 trees
+nex_data <- read.nexus(here("data/tree-pruner-7e6e42e2-9bfb-413b-b7fa-ec6403d781a6/output.nex"))
+
+# Elton Traits
+elton <- read_csv(here("data/EltonTraits.csv"))
+view(elton)
+
+# Peru Hawk Experiment Data
+hwk <- read_csv(here("data/2023_MadreDeDios_hwk.csv"))
+view(hwk)
+
+spp_alarm <- read.csv(here("data/Spp_Alarm.csv"))
+view(spp_alarm)
+```
+
+## Creating a consensus tree
+
+```{r}
+consensus_tree <- consensus(nex_data, p = 0.5)
+plot(consensus_tree, cex = 0.8)
+```
+
+## Ordering the tree
+
+```{r}
+tip_labels <- consensus_tree$tip.label
+tip_labels
+
+# Getting rid of duplicate Scientific Names in the Elton Traits
+elton_unique <- unique(elton[, "Scientific", drop = FALSE])
+
+merged_data <- merge(data.frame(species = tip_labels), elton_unique, by.x = "species", by.y = "Scientific", all.x = TRUE)
+
+merged_data
+
+ordered_vector <- order(as.vector(merged_data$SpecID))
+ordered_tips <- merged_data[order(merged_data$SpecID), "species"]
+
+ordered_tree <- consensus_tree[ordered_tips]
+
+plot(ordered_tree, cex = 0.8)
+```
+
+```{r}
+# Extracting tip labels from the consensus tree
+tip_labels <- consensus_tree$tip.label
+
+# Creating a data frame with the tip labels
+tip_labels_df <- data.frame(Scientific = tip_labels)
+
+# Getting rid of duplicate Scientific Names in the Elton Traits
+elton_unique <- unique(elton[, c("Scientific", "SpecID")])
+elton_unique_underscore <- elton_unique %>% 
+  mutate_all(~gsub(" ", "_", .))
+
+# Merging all columns based on the "Scientific" column
+merged_data <- merge(tip_labels_df, elton_unique_underscore, by = "Scientific", all.x = TRUE)
+
+# Print the merged data frame
+print(merged_data)
+
+```
+
+## Alarm Call Phylogeny
+
+Worked up until recent run. This is from my commit history.
+
+```{r}
+# add underscores
+spp_alarm$BirdTree <- gsub(" ", "_", spp_alarm$BirdTree)
+
+# simplifying the object name
+tip <- spp_alarm$BirdTree
+
+# Check unmatched tip labels
+unmatched_tips <- setdiff(consensus_tree$tip.label, tip)
+
+# Print unmatched tip labels
+print(unmatched_tips)
+
+# dropping unmatched species
+pruned_tree <- keep.tip(consensus_tree, tip)
+t2 <- consensus.edges(pruned_tree)
+
+# data that will appear on tree
+alarm <- spp_alarm$Alarm
+names(alarm) <- spp_alarm$BirdTree
+
+#debugging
+print(length(alarm))
+print(head(alarm))
+str(pruned_tree)
+plot(pruned_tree)
+
+# adding edge length ???
+branch_lengths <- pruned_tree$edge
+edge <- pruned_tree$edge
+pruned_tree <- compute.brlen(pruned_tree, method = "uniform")
+node_depths <- node.depth(pruned_tree, method = 1)
+pruned_tree$node.label <- node_depths
+
+# plotting the tree
+obj <- contMap(pruned_tree, alarm, plot=FALSE, res=200)
+plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", lwd = 3)
+
+```
+
+```{r}
+# add underscores
+spp_alarm$BirdTree <- gsub(" ", "_", spp_alarm$BirdTree)
+
+# simplifying the object name
+tip <- spp_alarm$BirdTree
+
+# Check unmatched tip labels
+unmatched_tips <- setdiff(consensus_tree$tip.label, tip)
+
+# Print unmatched tip labels
+print(unmatched_tips)
+
+pruned_tree <- keep.tip(consensus_tree, tip)
+t2<-consensus.edges(pruned_tree)
+
+#debugging
+print(length(alarm))
+print(head(alarm))
+str(pruned_tree)
+plot(pruned_tree)
+#branch_lengths <- pruned_tree$edge
+#edge <- pruned_tree$edge
+#pruned_tree <- compute.brlen(pruned_tree, method = "uniform")
+#node_depths <- node.depth(pruned_tree, method = 1)
+#pruned_tree$node.label <- node_depths
+
+# data that will appear on tree
+alarm <- spp_alarm$Alarm
+names(alarm) <- spp_alarm$BirdTree
+
+tree <- pruned_tree
+
+# plot tree
+obj<-contMap(tree, alarm, plot=FALSE, res=200)
+
+plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", lwd = 3)
+
+
+```
+
+```{r}
+get_all_node_depths(pruned_tree, as_edge_count=FALSE)
+str(pruned_tree)
+```
+
+## Fan Tree
+
+```{r}
+plotTree(tree, type = "fan", ftype = "i")
+```
+
+## Tree Matrix
+
+```{r}
+nex <- as.matrix(alarm)[,1]
+nex
+```
+
+## Estimate Ancestral State
+
+```{r}
+
+fit <- fastAnc(tree, alarm, vars = TRUE, CI = TRUE)
+fit
+```
+
+```{r}
+str(fit)
+class(fit)
+ans_df <- as_data_frame(fit)
+```
+
+```{r}
+fit$CI[1,]
+```
+
+```{r}
+range(alarm)
+```
+
+## Projection of the Reconstruction onto the Edges of the Tree
+
+This is identical to the first one. Probably need to join character estimates
+
+```{r}
+obj2 <- contMap(tree, alarm, plot = FALSE)
+plot( setMap(obj, invert = TRUE), legend = 0.7*max(nodeHeights(pruned_tree)),
+     fsize = c(0.7, 0.9))
+```
+
+## Discrete Characters
+
+```{r}
+data(nex_data)
+
+x <- getStates(pruned_tree, "tips")
+tree <- pruned_tree
+rm(pruned_tree)
+
+```
+
+```{r}
+phenogram(pruned_tree, alarm, ftype = "off", spread.labels = FALSE)
+```
+
+```{r}
+phylomorphospace3d(tree, alarm, method = "static")
+```
+
+## Hide Tree
+
+```{r}
+spp_hide <- read_csv(here("data/2023_MadreDeDios_hwk.csv"))
+view(spp_hide)
+
+# add underscores
+spp_hide$BirdTree <- gsub(" ", "_", spp_hide$BirdTree)
+
+# simplifying the object name
+tip <- spp_hide$BirdTree
+
+# Check unmatched tip labels
+unmatched_tips <- setdiff(consensus_tree$tip.label, tip)
+
+# Print unmatched tip labels
+print(unmatched_tips)
+
+matching_tips <- tip %in% consensus_tree$tip.label
+
+consensus_tree_matched <- keep.tip.phylo(consensus_tree, tip[matching_tips])
+
+pruned_tree <- keep.tip(consensus_tree_matched, tip)
+t2<-consensus.edges(pruned_tree)
+
+# data that will appear on tree
+alarm <- spp_alarm$Alarm
+names(alarm) <- spp_alarm$BirdTree
+
+tree <- pruned_tree
+
+# plot tree
+obj<-contMap(tree, alarm, plot=FALSE, res=200)
+
+plot( setMap(obj, invert = TRUE), fsize = c(0.7,1), leg.txt = "Alarm Calling", lwd = 3)
+```
