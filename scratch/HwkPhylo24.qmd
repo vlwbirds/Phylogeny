@@ -41,17 +41,28 @@ plot(consensus_tree, cex = 0.8)
 tip_labels <- consensus_tree$tip.label
 tip_labels
 
-# Getting rid of duplicate Scientific Names in the Elton Traits
-elton_unique <- unique(elton[, "Scientific", drop = FALSE])
+# Create a unique species data frame from the original elton data
+elton_unique <- unique(elton[, c("Scientific", "SpecID")])
 
-merged_data <- merge(data.frame(species = tip_labels), elton_unique, by.x = "species", by.y = "Scientific", all.x = TRUE)
+# add underscores
+elton_unique$Scientific <- gsub(" ", "_", elton_unique$Scientific)
 
-merged_data
+# Initialize merged_data with species names from tip_labels
+merged_data <- data.frame(species = tip_labels)
 
-ordered_vector <- order(as.vector(merged_data$SpecID))
-ordered_tips <- merged_data[order(merged_data$SpecID), "species"]
+# Use match to find the corresponding SpecID for each species in tip_labels
+merged_data$SpecID <- elton_unique$SpecID[match(merged_data$species, elton_unique$Scientific)]
 
-ordered_tree <- consensus_tree[ordered_tips]
+# Display the merged data
+print(merged_data)
+
+# Order the merged_data by SpecID (handle NA values)
+ordered_tips <- merged_data[order(merged_data$SpecID, na.last = TRUE), "species"]
+
+# Display the ordered tips
+print(ordered_tips)
+
+
 
 plot(ordered_tree, cex = 0.8)
 ```
