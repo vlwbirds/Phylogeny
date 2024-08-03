@@ -23,6 +23,11 @@ nex_data <- read.nexus(here("data/240803-tree-pruner-0958de02-389f-4ddd-b30c-98a
 elton <- read_csv(here("data/EltonTraits.csv"))
 view(elton)
 
+# IOC Taxonomy
+ioc <- read_csv(here("data/IOC_14.1_vs_other_lists.csv"))
+ioc_species <- filter(ioc, Rank == "species")
+view(ioc_species)
+
 # Peru Hawk Experiment Data
 hwk <- read_csv(here("data/2024_MadreDeDios_hwk.csv"))
 view(hwk)
@@ -36,6 +41,47 @@ plot(consensus_tree, cex = 0.8)
 ```
 
 ## Ordering the tree
+
+```{r}
+# Extract tip labels
+tip_labels <- consensus_tree$tip.label
+
+# Create a unique species data frame from the original elton data
+elton_unique <- unique(elton[, c("Scientific", "SpecID")])
+
+# Add underscores to match the format of tip labels
+elton_unique$Scientific <- gsub(" ", "_", elton_unique$Scientific)
+
+# Initialize merged_data with species names from tip_labels
+merged_data <- data.frame(species = tip_labels)
+
+# Use match to find the corresponding SpecID for each species in tip_labels
+merged_data$SpecID <- elton_unique$SpecID[match(merged_data$species, elton_unique$Scientific)]
+
+# Display the merged data
+view(merged_data)
+
+# Order the merged_data by SpecID (handle NA values)
+ordered_tips <- merged_data[order(merged_data$SpecID, na.last = TRUE), "species"]
+
+# Display the ordered tips
+print(ordered_tips)
+
+# Reorder the tree's tip labels
+consensus_tree$tip.label <- ordered_tips
+
+# Plot the ordered tree
+plot(consensus_tree, cex = 0.8)
+
+
+```
+
+```{r}
+# Save plot as a large PNG
+png(filename = "ordered_tree.png", width = 2000, height = 1500, res = 300)
+plot(consensus_tree, cex = 0.8)
+dev.off()
+```
 
 ```{r}
 tip_labels <- consensus_tree$tip.label
@@ -62,7 +108,7 @@ ordered_tips <- merged_data[order(merged_data$SpecID, na.last = TRUE), "species"
 # Display the ordered tips
 print(ordered_tips)
 
-
+ordered_tree <- consensus_tree[ordered_tips]
 
 plot(ordered_tree, cex = 0.8)
 ```
