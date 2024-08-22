@@ -1,0 +1,79 @@
+---
+title: "AlarmCallPhylogeny"
+format: html
+editor: visual
+---
+
+## Libraries and Data
+
+```{r}
+library(ape)
+library(castor)
+library(here)
+library(phytools)
+library(tidyverse)
+
+# data sets
+# nex_data is 100 trees
+nex_data <- read.nexus(here("data/trees/MayrAllErickson-tree-pruner-205594f1-a408-4345-b027-64dfdee069f9/output.nex"))
+
+spp_alarm <- read.csv(here("data/spp_alarm.csv"))
+#view(spp_alarm)
+```
+
+## Consensus Tree
+
+```{r}
+consensus_tree <- consensus(nex_data, p = 0.5)
+plot(consensus_tree, cex = 0.8)
+```
+
+## Alarm Call Phylogeny - Rooted
+
+```{r}
+library(phytools)
+
+# Replace spaces with underscores in species names
+spp_alarm$BirdTree <- gsub(" ", "_", spp_alarm$BirdTree)
+
+# Prune the tree to include only species present in the alarm data
+pruned_tree <- keep.tip(consensus_tree, spp_alarm$BirdTree)
+
+# Reorder alarm data to match pruned_tree$tip.label
+alarm <- spp_alarm$alarm[match(pruned_tree$tip.label, spp_alarm$BirdTree)]
+
+# Handle NA values
+filtered_indices <- !is.na(alarm)
+alarm <- alarm[filtered_indices]
+pruned_tree <- drop.tip(pruned_tree, pruned_tree$tip.label[!filtered_indices])
+
+# Ensure alignment between alarm vector and tree tips
+names(alarm) <- pruned_tree$tip.label
+
+# Root the tree using an outgroup
+rooted_tree <- root(pruned_tree, outgroup = "Penelope_jacquacu", resolve.root = TRUE)
+
+if (is.null(rooted_tree$edge.length)) {
+    rooted_tree$edge.length <- rep(1, nrow(rooted_tree$edge))
+}
+
+# Ensure the tree is ultrametric
+if (!is.ultrametric(rooted_tree)) {
+  rooted_tree <- chronos(rooted_tree)
+}
+
+# Assign uniform branch lengths
+rooted_tree <- compute.brlen(rooted_tree, method = "uniform")
+
+# Run contMap with error checking
+tryCatch({
+  obj <- contMap(rooted_tree, alarm, plot = FALSE, res = 200)
+  plot(setMap(obj, invert = TRUE), fsize = c(0.7, 1), leg.txt = "Alarm Calling", lwd = 3)
+}, error = function(e) {
+  print("Error in contMap:")
+  print(e)
+  print("Checking input data...")
+  print(alarm)
+  print(rooted_tree$tip.label)
+})
+```
