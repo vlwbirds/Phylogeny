@@ -326,10 +326,10 @@ if (is.null(branch_lengths) || length(branch_lengths) == 0) {
 
 ```
 
-```{}
+```         
 ```
 
-```{}
+```         
 ```
 
 ## Alarm Call Phylogeny - Rooted
@@ -382,16 +382,78 @@ tryCatch({
 })
 ```
 
+```{r}
+library(phytools)
+
+# Replace spaces with underscores in species names
+spp_alarm$BirdTree <- gsub(" ", "_", spp_alarm$BirdTree)
+
+# Prune the tree to include only species present in the alarm data
+pruned_tree <- keep.tip(consensus_tree, spp_alarm$BirdTree)
+
+# Reorder alarm data to match pruned_tree$tip.label
+alarm <- spp_alarm$alarm[match(pruned_tree$tip.label, spp_alarm$BirdTree)]
+
+# Handle NA values
+filtered_indices <- !is.na(alarm)
+alarm <- alarm[filtered_indices]
+pruned_tree <- drop.tip(pruned_tree, pruned_tree$tip.label[!filtered_indices])
+
+# Ensure alignment between alarm vector and tree tips
+names(alarm) <- pruned_tree$tip.label
+
+# Root the tree using an outgroup
+rooted_tree <- root(pruned_tree, outgroup = "Penelope_jacquacu", resolve.root = TRUE)
+
+if (is.null(rooted_tree$edge.length)) {
+    rooted_tree$edge.length <- rep(1, nrow(rooted_tree$edge))
+}
+
+# Ensure the tree is ultrametric
+if (!is.ultrametric(rooted_tree)) {
+  rooted_tree <- chronos(rooted_tree)
+}
+
+# Assign uniform branch lengths
+rooted_tree <- compute.brlen(rooted_tree, method = "uniform")
+
+# Custom colors for labels: red for species with alarms, black otherwise
+label_colors <- ifelse(alarm > 0, "red", "black")
+
+# Run contMap with error checking
+tryCatch({
+  obj <- contMap(rooted_tree, alarm, plot = FALSE, res = 500)
+ plot(setMap(obj, invert = TRUE), fsize = c(0.8, 1), leg.txt = "Alarm Calling", lwd = 2, type = "fan")
+  nodelabels(pch = 20, col = label_colors, cex = 0) # Add red labels for species with alarms
+  tiplabels(pch = 20, col = label_colors, cex = 1)
+}, error = function(e) {
+  print("Error in contMap:")
+  print(e)
+  print("Checking input data...")
+  print(alarm)
+  print(rooted_tree$tip.label)
+})
+```
+
+```{}
+```
+
 ## Saving the Tree as PNG
 
 ```{r}
-# Define the plot dimensions and resolution
-png("contMap_plot.png", width = 2000, height = 2000, res = 300)
+# Load the here package if not already loaded
+if(!require(here)) install.packages("here")
+library(here)
+
+# Open a PNG device with specified dimensions and resolution, and file path
+png(filename = here("figs/alarmcall_contmap_fan.png"), width = 5000, height = 8000, res = 500)
 
 # Run contMap with error checking and plot
 tryCatch({
   obj <- contMap(rooted_tree, alarm, plot = FALSE, res = 200)
-  plot(setMap(obj, invert = TRUE), fsize = c(0.7, 1), leg.txt = "Alarm Calling", lwd = 3)
+  plot(setMap(obj, invert = TRUE), fsize = c(0.7, 1), leg.txt = "Alarm Calling", lwd = 3, type = "fan")
+  nodelabels(pch = 19, col = label_colors, cex = 0.7) # Add red labels for species with alarms
+  tiplabels(pch = 19, col = label_colors, cex = 1)
 }, error = function(e) {
   print("Error in contMap:")
   print(e)
@@ -400,8 +462,9 @@ tryCatch({
   print(rooted_tree$tip.label)
 })
 
-# Close the PNG device
-dev.off()
+# Close the PNG device only if it was successfully opened
+if (dev.cur() > 1) dev.off()
+
 
 
 ```
